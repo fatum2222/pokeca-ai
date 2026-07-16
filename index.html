@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f2747">
+<title>PokéTrade Ver.2</title>
+<style>
+:root{
+  --navy:#0f2747;--blue:#2d67d7;--bg:#f3f6fb;--card:#fff;--text:#172033;
+  --muted:#66738a;--line:#dbe3ef;--good:#17703a;--goodbg:#e7f6ec;
+  --warn:#805400;--warnbg:#fff3da;--bad:#932d35;--badbg:#fde8e9;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif}
+header{position:sticky;top:0;z-index:10;background:linear-gradient(135deg,#0f2747,#24569f);color:#fff;padding:18px 16px 12px;box-shadow:0 4px 18px #07162b33}
+header h1{font-size:1.35rem;margin:0}header p{margin:5px 0 0;font-size:.84rem;opacity:.82}
+nav{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:13px}
+nav button{margin:0;padding:9px 3px;border:0;border-radius:9px;background:#ffffff18;color:#dbe8ff;font-size:.72rem;font-weight:800}
+nav button.active{background:#fff;color:#19498b}
+main{max-width:920px;margin:auto;padding:13px}
+.view{display:none}.view.active{display:block}
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:13px;box-shadow:0 5px 19px #16284612}
+h2{font-size:1.08rem;margin:0 0 13px}h3{font-size:.96rem;margin:0 0 9px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+label{font-size:.82rem;font-weight:750;display:flex;flex-direction:column;gap:5px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:11px;border:1px solid #cbd6e6;border-radius:10px;background:#fff;color:var(--text)}
+textarea{min-height:76px;resize:vertical}
+button.primary,.fileBtn{border:0;border-radius:10px;background:var(--blue);color:#fff;padding:12px 14px;font-weight:850;font-size:14px;margin-top:12px}
+button.secondary{border:0;border-radius:10px;background:#5e6e87;color:#fff;padding:11px 13px;font-weight:800}
+button.danger{border:0;border-radius:10px;background:#a63b46;color:#fff;padding:11px 13px;font-weight:800}
+button.ghost{border:1px solid #b9c7da;border-radius:10px;background:#fff;color:#29486f;padding:10px 12px;font-weight:800}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.upload input,.fileBtn input{display:none}
+.upload span{display:block;border:2px dashed #91a9d2;background:#f5f8ff;color:#295dba;border-radius:12px;padding:17px;text-align:center;font-weight:800}
+#preview{display:none;width:140px;max-height:195px;object-fit:contain;margin:12px auto;border-radius:10px;background:#eef1f5}
+.helper{color:var(--muted);font-size:.79rem;line-height:1.55;margin:8px 0 0}
+.resultGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.resultBox{border:1px solid var(--line);border-radius:13px;padding:13px}
+.resultBox p{margin:8px 0;font-size:.9rem}.big{font-size:1.25rem}
+.judge{margin-top:12px;padding:14px;border-radius:12px;font-weight:850;line-height:1.55;background:#edf2fa}
+.good{background:var(--goodbg);color:var(--good)}.warn{background:var(--warnbg);color:var(--warn)}.bad{background:var(--badbg);color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.kpi{background:#f7f9fc;border:1px solid var(--line);border-radius:13px;padding:13px}.kpi span{display:block;font-size:.78rem;color:var(--muted)}.kpi strong{display:block;font-size:1.2rem;margin-top:6px}
+.progress{height:13px;border-radius:999px;background:#e6ebf3;overflow:hidden;margin-top:8px}.progress i{display:block;height:100%;background:#3972df;width:0}
+.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:10px}
+table{width:100%;min-width:780px;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #e5eaf1;text-align:left;font-size:.78rem;vertical-align:top}th{background:#f3f6fa;position:sticky;top:0}
+.badge{display:inline-block;padding:4px 7px;border-radius:999px;font-weight:800;font-size:.72rem;background:#edf2fa}
+.badge.sale{background:#e7f6ec;color:#17703a}.badge.stock{background:#fff3da;color:#805400}.badge.loss{background:#fde8e9;color:#932d35}
+.searchRow{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+footer{text-align:center;color:#748096;font-size:.75rem;padding:20px}
+#ocrStatus.loading{color:#295dba;font-weight:800}
+#ocrStatus.success{color:#17703a;font-weight:800}
+#ocrStatus.error{color:#932d35;font-weight:800}
+details summary{padding:6px 0}
+@media(max-width:650px){
+  .grid,.grid3,.resultGrid{grid-template-columns:1fr}.searchRow{grid-template-columns:1fr}
+  nav button{font-size:.65rem}.kpis{grid-template-columns:1fr 1fr}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>PokéTrade Ver.2</h1>
+  <p>ポケカの国内・海外利益比較／在庫・売却管理</p>
+  <nav>
+    <button data-view="scan" class="active">登録</button>
+    <button data-view="inventory">在庫</button>
+    <button data-view="sales">売却</button>
+    <button data-view="dashboard">集計</button>
+    <button data-view="settings">設定</button>
+  </nav>
+</header>
+
+<main>
+<section id="scan" class="view active">
+  <div class="card">
+    <h2>カードを登録・利益比較</h2>
+    <label class="upload"><input id="imageInput" type="file" accept="image/*" capture="environment"><span>カードを撮影／画像を選択</span></label>
+    <img id="preview" alt="プレビュー">
+    <div class="actions">
+      <button id="runOcr" class="secondary" type="button">画像から文字を読み取る</button>
+    </div>
+    <div id="ocrStatus" class="helper">画像を選択後、「画像から文字を読み取る」を押してください。</div>
+    <details style="margin-top:10px">
+      <summary style="font-weight:800;cursor:pointer">OCR全文を確認</summary>
+      <textarea id="ocrText" readonly placeholder="読み取った文字がここに表示されます"></textarea>
+    </details>
+    <div class="grid">
+      <label>カード名<input id="cardName" placeholder="例：レックウザVMAX"></label>
+      <label>カード番号<input id="cardNumber" placeholder="例：284/184"></label>
+      <label>セットコード<input id="setCode" placeholder="例：s8b"></label>
+      <label>レアリティ<input id="rarity" placeholder="例：UR"></label>
+      <label>状態<select id="condition"><option>未鑑定・美品</option><option>未鑑定・小傷あり</option><option>未鑑定・傷あり</option><option>PSA 10</option><option>PSA 9</option><option>その他鑑定品</option></select></label>
+      <label>管理ID<input id="uniqueId" readonly></label>
+    </div>
+    <p class="helper">同名カードは、セットコード＋カード番号＋レアリティで区別します。</p>
+  </div>
+
+  <div class="card">
+    <h2>仕入れ・販売条件</h2>
+    <div class="grid">
+      <label>仕入れ価格（円）<input id="purchasePrice" type="number" min="0" value="25000"></label>
+      <label>仕入れ日<input id="purchaseDate" type="date"></label>
+      <label>国内販売価格（円）<input id="jpSalePrice" type="number" min="0" value="32000"></label>
+      <label>海外販売価格（現地通貨）<input id="overseasPrice" type="number" min="0" step="0.01" value="220"></label>
+      <label>通貨<select id="currency"><option>USD</option><option>EUR</option><option>GBP</option></select></label>
+      <label>為替レート（1通貨＝円）<input id="fxRate" type="number" min="0" step="0.01" value="150"></label>
+      <label>国内手数料（%）<input id="jpFeeRate" type="number" min="0" step="0.1" value="10"></label>
+      <label>海外手数料（%）<input id="intlFeeRate" type="number" min="0" step="0.1" value="15"></label>
+      <label>国内送料（円）<input id="jpShipping" type="number" min="0" value="230"></label>
+      <label>国際送料（円）<input id="intlShipping" type="number" min="0" value="2500"></label>
+      <label>梱包・その他費用（円）<input id="otherCost" type="number" min="0" value="200"></label>
+      <label>仕入れ先<input id="source" placeholder="例：カードショップ"></label>
+    </div>
+    <label style="margin-top:10px">メモ<textarea id="memo" placeholder="傷、白欠け、相場の根拠など"></textarea></label>
+    <button id="calculate" class="primary">利益を比較</button>
+  </div>
+
+  <div class="card">
+    <h2>判定結果</h2>
+    <div class="resultGrid">
+      <article class="resultBox"><h3>国内販売</h3><p>売上：<strong id="jpRevenue">-</strong></p><p>利益：<strong id="jpProfit" class="big">-</strong></p><p>利益率：<strong id="jpMargin">-</strong></p></article>
+      <article class="resultBox"><h3>海外販売</h3><p>円換算売上：<strong id="intlRevenue">-</strong></p><p>利益：<strong id="intlProfit" class="big">-</strong></p><p>利益率：<strong id="intlMargin">-</strong></p></article>
+    </div>
+    <div id="recommendation" class="judge">入力して比較してください。</div>
+    <div class="actions">
+      <button id="saveInventory" class="primary">在庫へ登録</button>
+      <button id="resetForm" class="ghost">入力をリセット</button>
+    </div>
+  </div>
+</section>
+
+<section id="inventory" class="view">
+  <div class="card">
+    <h2>在庫一覧</h2>
+    <div class="searchRow">
+      <input id="inventorySearch" placeholder="カード名・管理IDで検索">
+      <select id="inventoryFilter"><option value="all">すべて</option><option value="stock">在庫中</option><option value="sold">売却済み</option></select>
+    </div>
+    <div class="tableWrap"><table><thead><tr><th>管理ID</th><th>カード名</th><th>状態</th><th>仕入れ</th><th>推奨</th><th>登録日</th><th>状態</th><th>操作</th></tr></thead><tbody id="inventoryBody"></tbody></table></div>
+  </div>
+</section>
+
+<section id="sales" class="view">
+  <div class="card">
+    <h2>売却を記録</h2>
+    <div class="grid">
+      <label>対象カード<select id="saleItem"></select></label>
+      <label>売却日<input id="saleDate" type="date"></label>
+      <label>販路<select id="saleChannel"><option>国内</option><option>海外</option></select></label>
+      <label>実売価格（円）<input id="actualSalePrice" type="number" min="0"></label>
+      <label>実際の手数料（円）<input id="actualFee" type="number" min="0"></label>
+      <label>実際の送料・その他（円）<input id="actualShipping" type="number" min="0"></label>
+    </div>
+    <button id="recordSale" class="primary">売却を確定</button>
+  </div>
+  <div class="card">
+    <h2>売却履歴</h2>
+    <div class="tableWrap"><table><thead><tr><th>売却日</th><th>カード名</th><th>販路</th><th>売上</th><th>実利益</th><th>保有日数</th></tr></thead><tbody id="salesBody"></tbody></table></div>
+  </div>
+</section>
+
+<section id="dashboard" class="view">
+  <div class="card">
+    <h2>利益ダッシュボード</h2>
+    <div class="kpis">
+      <div class="kpi"><span>今月の実利益</span><strong id="monthProfit">¥0</strong></div>
+      <div class="kpi"><span>累計実利益</span><strong id="totalProfit">¥0</strong></div>
+      <div class="kpi"><span>現在の在庫原価</span><strong id="stockValue">¥0</strong></div>
+      <div class="kpi"><span>在庫件数</span><strong id="stockCount">0件</strong></div>
+    </div>
+    <hr>
+    <div><strong>月間目標：<span id="goalText">¥150,000</span></strong><div class="progress"><i id="goalBar"></i></div><p class="helper" id="goalStatus"></p></div>
+  </div>
+  <div class="card">
+    <h2>販売分析</h2>
+    <div class="kpis">
+      <div class="kpi"><span>平均利益</span><strong id="avgProfit">¥0</strong></div>
+      <div class="kpi"><span>平均保有日数</span><strong id="avgDays">0日</strong></div>
+      <div class="kpi"><span>国内売却件数</span><strong id="jpSalesCount">0件</strong></div>
+      <div class="kpi"><span>海外売却件数</span><strong id="intlSalesCount">0件</strong></div>
+    </div>
+  </div>
+</section>
+
+<section id="settings" class="view">
+  <div class="card">
+    <h2>判定・目標設定</h2>
+    <div class="grid">
+      <label>最低利益額（円）<input id="minProfitSetting" type="number" value="1000"></label>
+      <label>最低利益率（%）<input id="minMarginSetting" type="number" value="20"></label>
+      <label>海外推奨に必要な国内との差額（円）<input id="overseasGapSetting" type="number" value="1500"></label>
+      <label>月間利益目標（円）<input id="monthGoalSetting" type="number" value="150000"></label>
+    </div>
+    <button id="saveSettings" class="primary">設定を保存</button>
+  </div>
+  <div class="card">
+    <h2>データ管理</h2>
+    <p class="helper">機種変更やSafariのデータ削除に備え、定期的にバックアップしてください。</p>
+    <div class="actions">
+      <button id="exportCsv" class="secondary">売買履歴をCSV出力</button>
+      <button id="exportJson" class="secondary">全データをバックアップ</button>
+      <label class="fileBtn">バックアップを復元<input id="importJson" type="file" accept=".json,application/json"></label>
+      <button id="clearAll" class="danger">全データ削除</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>現在の制限</h2>
+    <p class="helper">カード画像からの自動認識、メルカリやeBayなどの相場自動取得、リアルタイム為替は未搭載です。これらは公式APIや外部サービスの認証が必要です。</p>
+  </div>
+</section>
+</main>
+<footer>データはこのSafariの端末内に保存されます。</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const num=id=>Number($(id).value||0);
+const yen=v=>new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(Number(v||0));
+const pct=v=>(Number(v||0)*100).toFixed(1)+'%';
+const today=()=>new Date().toISOString().slice(0,10);
+const store={
+  get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},
+  set(k,v){localStorage.setItem(k,JSON.stringify(v))}
+};
+let lastResult=null;
+let imageData='';
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');$(b.dataset.view).classList.add('active');
+  if(b.dataset.view==='inventory')renderInventory();
+  if(b.dataset.view==='sales')renderSales();
+  if(b.dataset.view==='dashboard')renderDashboard();
+});
+
+function settings(){return store.get('pt-settings',{minProfit:1000,minMargin:20,overseasGap:1500,monthGoal:150000})}
+function inventory(){return store.get('pt-inventory',[])}
+function saveInventoryData(v){store.set('pt-inventory',v)}
+
+function clean(v){return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'')}
+function makeId(){
+  $('uniqueId').value=[clean($('setCode').value),clean($('cardNumber').value),clean($('rarity').value)].filter(Boolean).join('-')
+}
+['setCode','cardNumber','rarity'].forEach(id=>$(id).oninput=makeId);
+
+
+$('imageInput').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    imageData=r.result;
+    $('preview').src=imageData;
+    $('preview').style.display='block';
+    $('ocrStatus').textContent='画像を選択しました。「画像から文字を読み取る」を押してください。';
+    $('ocrStatus').className='helper';
+  };
+  r.readAsDataURL(f)
+};
+
+function normalizeOcrText(text){
+  return String(text||'')
+    .replace(/[Ｏ〇]/g,'0')
+    .replace(/[Ｉｌ｜]/g,'1')
+    .replace(/／/g,'/')
+    .replace(/：/g,':')
+    .replace(/[‐‑‒–—―]/g,'-');
+}
+
+function extractCardFields(raw){
+  const text=normalizeOcrText(raw);
+  const compact=text.replace(/\s+/g,' ');
+  const numberMatches=[...compact.matchAll(/\b(\d{1,3})\s*\/\s*(\d{1,3})\b/g)];
+  const cardNumber=numberMatches.length ? `${numberMatches[0][1]}/${numberMatches[0][2]}` : '';
+
+  const setPatterns=[
+    /\b(SV\d{1,2}[A-Z]?)\b/i,
+    /\b(S\d{1,2}[A-Z]?)\b/i,
+    /\b(SM\d{1,2}[A-Z]?)\b/i,
+    /\b(XY\d{1,2}[A-Z]?)\b/i,
+    /\b(BW\d{1,2}[A-Z]?)\b/i,
+    /\b(SM-P|S-P|SV-P|XY-P|BW-P)\b/i
+  ];
+  let setCode='';
+  for(const p of setPatterns){
+    const m=compact.match(p);
+    if(m){setCode=m[1].toUpperCase();break}
+  }
+
+  const rarityList=['SAR','SR','UR','HR','CSR','CHR','AR','RRR','RR','R','ACE SPEC','PROMO'];
+  let rarity='';
+  for(const r of rarityList){
+    const re=new RegExp(`\\b${r.replace(' ','\\\\s*')}\\b`,'i');
+    if(re.test(compact)){rarity=r;break}
+  }
+
+  // Card name is often near the top; use the first plausible Japanese/Latin line.
+  const lines=text.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+  const ignored=/^(HP|BASIC|たね|進化|TRAINER|ENERGY|ポケモン|pokemon|illus\.|弱点|抵抗力|にげる)/i;
+  let name='';
+  for(const line of lines.slice(0,8)){
+    const cleaned=line.replace(/[|()[\]{}]/g,' ').replace(/\s+/g,' ').trim();
+    if(cleaned.length>=2 && cleaned.length<=30 && !ignored.test(cleaned) && !/\d{1,3}\s*\/\s*\d{1,3}/.test(cleaned)){
+      name=cleaned;
+      break;
+    }
+  }
+  return {cardNumber,setCode,rarity,name};
+}
+
+$('runOcr').onclick=async()=>{
+  if(!imageData){
+    alert('先にカード画像を選択してください。');
+    return;
+  }
+  if(typeof Tesseract==='undefined'){
+    $('ocrStatus').textContent='OCRライブラリを読み込めませんでした。通信状態を確認してください。';
+    $('ocrStatus').className='helper error';
+    return;
+  }
+
+  $('runOcr').disabled=true;
+  $('runOcr').textContent='読み取り中…';
+  $('ocrStatus').textContent='OCRを準備しています。初回は少し時間がかかります。';
+  $('ocrStatus').className='helper loading';
+
+  try{
+    const result=await Tesseract.recognize(imageData,'jpn+eng',{
+      logger:m=>{
+        if(m.status==='recognizing text'){
+          const p=Math.round((m.progress||0)*100);
+          $('ocrStatus').textContent=`文字を読み取り中… ${p}%`;
+        }else if(m.status){
+          $('ocrStatus').textContent='処理中：'+m.status;
+        }
+      }
+    });
+
+    const text=result?.data?.text||'';
+    $('ocrText').value=text;
+    const found=extractCardFields(text);
+
+    if(found.cardNumber) $('cardNumber').value=found.cardNumber;
+    if(found.setCode) $('setCode').value=found.setCode;
+    if(found.rarity) $('rarity').value=found.rarity;
+    if(found.name && !$('cardName').value.trim()) $('cardName').value=found.name;
+    makeId();
+
+    const items=[];
+    if(found.cardNumber) items.push('カード番号 '+found.cardNumber);
+    if(found.setCode) items.push('セット '+found.setCode);
+    if(found.rarity) items.push('レアリティ '+found.rarity);
+
+    if(items.length){
+      $('ocrStatus').textContent='候補を入力しました：'+items.join('／')+'。必ず画像と照合してください。';
+      $('ocrStatus').className='helper success';
+    }else{
+      $('ocrStatus').textContent='カード番号などを特定できませんでした。OCR全文を確認し、手入力してください。';
+      $('ocrStatus').className='helper error';
+    }
+  }catch(err){
+    console.error(err);
+    $('ocrStatus').textContent='読み取りに失敗しました。明るい場所で、カードを正面から大きく撮影して再度お試しください。';
+    $('ocrStatus').className='helper error';
+  }finally{
+    $('runOcr').disabled=false;
+    $('runOcr').textContent='画像から文字を読み取る';
+  }
+};
+
+function calculate(){
+  makeId();
+  const buy=num('purchasePrice'),jp=num('jpSalePrice'),intlRevenue=num('overseasPrice')*num('fxRate');
+  const jpProfit=jp-buy-jp*num('jpFeeRate')/100-num('jpShipping')-num('otherCost');
+  const intlProfit=intlRevenue-buy-intlRevenue*num('intlFeeRate')/100-num('intlShipping')-num('otherCost');
+  const jpMargin=jp?jpProfit/jp:0,intlMargin=intlRevenue?intlProfit/intlRevenue:0;
+  $('jpRevenue').textContent=yen(jp);$('jpProfit').textContent=yen(jpProfit);$('jpMargin').textContent=pct(jpMargin);
+  $('intlRevenue').textContent=yen(intlRevenue);$('intlProfit').textContent=yen(intlProfit);$('intlMargin').textContent=pct(intlMargin);
+  const s=settings();let recommendation,code,cls='judge';
+  if(Math.max(jpProfit,intlProfit)<s.minProfit || Math.max(jpMargin,intlMargin)<s.minMargin/100){
+    recommendation='見送り推奨：設定した最低利益または利益率を満たしていません。';code='見送り';cls+=' bad';
+  }else if(intlProfit>jpProfit+s.overseasGap){
+    recommendation='海外販売推奨：国内より約'+yen(intlProfit-jpProfit)+'高い利益です。返品・為替変動も確認してください。';code='海外';cls+=' good';
+  }else if(jpProfit>intlProfit+s.overseasGap){
+    recommendation='国内販売推奨：海外より約'+yen(jpProfit-intlProfit)+'高い利益で、発送リスクも低めです。';code='国内';cls+=' good';
+  }else{
+    recommendation='利益差が小さいため国内販売優先。海外は手間に見合う価格差がある場合のみ検討。';code='国内優先';cls+=' warn';
+  }
+  $('recommendation').textContent=recommendation;$('recommendation').className=cls;
+  lastResult={jpProfit,intlProfit,jpMargin,intlMargin,recommendation,code,intlRevenue,jpRevenue:jp};
+}
+$('calculate').onclick=calculate;
+
+function resetForm(){
+  ['cardName','cardNumber','setCode','rarity','source','memo'].forEach(id=>$(id).value='');
+  $('condition').selectedIndex=0;$('uniqueId').value='';$('purchasePrice').value='';$('jpSalePrice').value='';
+  $('overseasPrice').value='';imageData='';$('preview').style.display='none';$('ocrText').value='';$('ocrStatus').textContent='画像を選択後、「画像から文字を読み取る」を押してください。';$('ocrStatus').className='helper';lastResult=null;
+  $('recommendation').textContent='入力して比較してください。';$('recommendation').className='judge';
+}
+$('resetForm').onclick=resetForm;
+
+$('saveInventory').onclick=()=>{
+  if(!lastResult)calculate();
+  if(!$('cardName').value.trim()||!$('uniqueId').value){alert('カード名・カード番号・セットコード・レアリティを入力してください。');return}
+  const list=inventory();
+  list.unshift({
+    recordId:'r'+Date.now(),uid:$('uniqueId').value,name:$('cardName').value.trim(),number:$('cardNumber').value,
+    setCode:$('setCode').value,rarity:$('rarity').value,condition:$('condition').value,image:imageData,
+    purchase:num('purchasePrice'),purchaseDate:$('purchaseDate').value||today(),source:$('source').value,memo:$('memo').value,
+    jpEstimate:num('jpSalePrice'),intlEstimate:num('overseasPrice'),currency:$('currency').value,fx:num('fxRate'),
+    jpProfit:lastResult.jpProfit,intlProfit:lastResult.intlProfit,recommendation:lastResult.code,
+    createdAt:new Date().toISOString(),status:'stock',sale:null
+  });
+  saveInventoryData(list);alert('在庫へ登録しました。');renderInventory();renderSales();renderDashboard();
+};
+
+function filteredInventory(){
+  const q=$('inventorySearch').value.toLowerCase(),f=$('inventoryFilter').value;
+  return inventory().filter(x=>(f==='all'||x.status===f)&&((x.name+' '+x.uid).toLowerCase().includes(q)))
+}
+function renderInventory(){
+  $('inventoryBody').innerHTML=filteredInventory().map(x=>{
+    const status=x.status==='sold'?'<span class="badge sale">売却済み</span>':'<span class="badge stock">在庫中</span>';
+    return `<tr><td>${x.uid}</td><td><strong>${x.name}</strong><br><small>${x.memo||''}</small></td><td>${x.condition}</td><td>${yen(x.purchase)}</td><td>${x.recommendation}</td><td>${x.purchaseDate}</td><td>${status}</td><td><button class="ghost" onclick="deleteItem('${x.recordId}')">削除</button></td></tr>`
+  }).join('')||'<tr><td colspan="8">登録データがありません。</td></tr>';
+}
+$('inventorySearch').oninput=renderInventory;$('inventoryFilter').onchange=renderInventory;
+window.deleteItem=id=>{if(!confirm('このデータを削除しますか？'))return;saveInventoryData(inventory().filter(x=>x.recordId!==id));renderInventory();renderSales();renderDashboard()};
+
+function renderSales(){
+  const stock=inventory().filter(x=>x.status==='stock');
+  $('saleItem').innerHTML=stock.map(x=>`<option value="${x.recordId}">${x.name}｜${x.uid}</option>`).join('')||'<option value="">在庫がありません</option>';
+  const sold=inventory().filter(x=>x.status==='sold');
+  $('salesBody').innerHTML=sold.map(x=>`<tr><td>${x.sale.date}</td><td>${x.name}</td><td>${x.sale.channel}</td><td>${yen(x.sale.price)}</td><td><strong>${yen(x.sale.profit)}</strong></td><td>${x.sale.days}日</td></tr>`).join('')||'<tr><td colspan="6">売却履歴がありません。</td></tr>';
+}
+$('recordSale').onclick=()=>{
+  const id=$('saleItem').value;if(!id){alert('売却対象の在庫がありません。');return}
+  const list=inventory(),item=list.find(x=>x.recordId===id);const price=num('actualSalePrice');
+  if(!price){alert('実売価格を入力してください。');return}
+  const date=$('saleDate').value||today(),profit=price-item.purchase-num('actualFee')-num('actualShipping');
+  const days=Math.max(0,Math.round((new Date(date)-new Date(item.purchaseDate))/(1000*60*60*24)));
+  item.status='sold';item.sale={date,channel:$('saleChannel').value,price,fee:num('actualFee'),shipping:num('actualShipping'),profit,days};
+  saveInventoryData(list);renderSales();renderInventory();renderDashboard();alert('売却を記録しました。');
+};
+
+function renderDashboard(){
+  const list=inventory(),sold=list.filter(x=>x.status==='sold'),stock=list.filter(x=>x.status==='stock');
+  const now=new Date(),ym=now.toISOString().slice(0,7),month=sold.filter(x=>x.sale.date.slice(0,7)===ym);
+  const sum=a=>a.reduce((t,x)=>t+x,0);
+  const totalProfit=sum(sold.map(x=>x.sale.profit)),monthProfit=sum(month.map(x=>x.sale.profit));
+  $('monthProfit').textContent=yen(monthProfit);$('totalProfit').textContent=yen(totalProfit);
+  $('stockValue').textContent=yen(sum(stock.map(x=>x.purchase)));$('stockCount').textContent=stock.length+'件';
+  const goal=settings().monthGoal,p=Math.min(100,goal?monthProfit/goal*100:0);$('goalText').textContent=yen(goal);$('goalBar').style.width=p+'%';
+  $('goalStatus').textContent='達成率 '+p.toFixed(1)+'%／残り '+yen(Math.max(0,goal-monthProfit));
+  $('avgProfit').textContent=yen(sold.length?totalProfit/sold.length:0);
+  $('avgDays').textContent=(sold.length?(sum(sold.map(x=>x.sale.days))/sold.length).toFixed(1):0)+'日';
+  $('jpSalesCount').textContent=sold.filter(x=>x.sale.channel==='国内').length+'件';
+  $('intlSalesCount').textContent=sold.filter(x=>x.sale.channel==='海外').length+'件';
+}
+
+function loadSettings(){
+  const s=settings();$('minProfitSetting').value=s.minProfit;$('minMarginSetting').value=s.minMargin;
+  $('overseasGapSetting').value=s.overseasGap;$('monthGoalSetting').value=s.monthGoal;
+}
+$('saveSettings').onclick=()=>{
+  store.set('pt-settings',{minProfit:num('minProfitSetting'),minMargin:num('minMarginSetting'),overseasGap:num('overseasGapSetting'),monthGoal:num('monthGoalSetting')});
+  alert('設定を保存しました。');renderDashboard();
+};
+
+$('exportCsv').onclick=()=>{
+  const rows=[['管理ID','カード名','状態','仕入れ価格','仕入れ日','在庫状態','売却日','販路','売上','実利益','保有日数']];
+  inventory().forEach(x=>rows.push([x.uid,x.name,x.condition,x.purchase,x.purchaseDate,x.status,x.sale?.date||'',x.sale?.channel||'',x.sale?.price||'',x.sale?.profit||'',x.sale?.days||'']));
+  download('\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n'),'poketrade_records.csv','text/csv');
+};
+$('exportJson').onclick=()=>download(JSON.stringify({version:2,inventory:inventory(),settings:settings()},null,2),'poketrade_backup.json','application/json');
+function download(data,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+$('importJson').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.inventory))throw 0;saveInventoryData(d.inventory);if(d.settings)store.set('pt-settings',d.settings);loadSettings();renderInventory();renderSales();renderDashboard();alert('復元しました。')}catch{alert('バックアップファイルを読み込めませんでした。')}};
+  r.readAsText(f);
+};
+$('clearAll').onclick=()=>{if(confirm('全データを削除しますか？この操作は戻せません。')){localStorage.removeItem('pt-inventory');localStorage.removeItem('pt-settings');location.reload()}};
+
+$('purchaseDate').value=today();$('saleDate').value=today();
+$('cardName').value='レックウザVMAX';$('cardNumber').value='284/184';$('setCode').value='s8b';$('rarity').value='UR';
+makeId();calculate();loadSettings();renderInventory();renderSales();renderDashboard();
+</script>
+</body>
+</html>
