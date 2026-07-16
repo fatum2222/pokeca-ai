@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f2747"><title>PokéTrade Ver.5.0</title>
+<style>
+:root{--navy:#0f2747;--blue:#2d67d7;--bg:#f3f6fb;--line:#dbe3ef;--muted:#66738a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#172033;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Yu Gothic",sans-serif}
+header{position:sticky;top:0;z-index:5;background:linear-gradient(135deg,#0f2747,#24569f);color:#fff;padding:17px 14px 11px}
+h1{font-size:1.3rem;margin:0}header p{font-size:.8rem;opacity:.82;margin:5px 0 0}
+nav{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:11px}nav button{border:0;border-radius:9px;padding:9px;background:#ffffff1c;color:#fff;font-weight:800}nav button.active{background:#fff;color:#19498b}
+main{max-width:850px;margin:auto;padding:13px}.view{display:none}.view.active{display:block}.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:13px;box-shadow:0 5px 18px #16284612}
+h2{font-size:1.05rem;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:flex;flex-direction:column;gap:5px;font-size:.82rem;font-weight:750}input,select,textarea{width:100%;font:inherit;font-size:16px;padding:11px;border:1px solid #cbd6e6;border-radius:10px}
+button,.fileBtn{border:0;border-radius:10px;padding:11px 13px;font-weight:800;margin:5px 4px 5px 0}.primary{background:var(--blue);color:#fff}.secondary{background:#5e6e87;color:#fff}.danger{background:#a63b46;color:#fff}.fileBtn{display:inline-block;background:#5e6e87;color:white}.fileBtn input{display:none}
+.helper{font-size:.79rem;line-height:1.55;color:var(--muted)}.status{padding:12px;border-radius:11px;background:#edf2fa;margin:10px 0;font-weight:750}.ok{background:#e7f6ec;color:#17703a}.err{background:#fde8e9;color:#932d35}
+.tableWrap{overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:10px}table{border-collapse:collapse;width:100%;min-width:650px}th,td{padding:9px;border-bottom:1px solid #e5eaf1;text-align:left;font-size:.78rem}th{background:#f4f6fa}
+.candidates{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:6px}.candidate{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #edf0f5;border-radius:0;margin:0;padding:11px}.candidate:last-child{border-bottom:0}
+@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>PokéTrade Ver.5.0</h1><p>カード選択で海外相場を自動取得・在庫・売却利益管理</p>
+<nav style="grid-template-columns:repeat(4,1fr)"><button class="active" data-view="register">登録</button><button data-view="inventory">在庫</button><button data-view="sales">売却</button><button data-view="settings">設定</button></nav></header>
+<main>
+<section id="register" class="view active">
+<div class="card"><h2>カードを検索・登録</h2>
+<label>カード名<input id="cardName" autocomplete="off" placeholder="例：ピカチュウ"></label>
+<div id="candidateList" class="candidates" style="display:none"></div>
+<div class="grid" style="margin-top:10px">
+<label>カード番号<input id="cardNumber"></label><label>セットコード<input id="setCode"></label>
+<label>レアリティ<input id="rarity"></label><label>状態<select id="condition"><option>未鑑定・美品</option><option>未鑑定・小傷あり</option><option>未鑑定・傷あり</option><option>PSA 10</option><option>PSA 9</option></select></label>
+<label>仕入れ価格（円）<input id="purchasePrice" type="number" min="0"></label><label>仕入れ日<input id="purchaseDate" type="date"></label>
+</div>
+<div class="card" style="box-shadow:none;border:1px solid var(--line);margin-top:12px">
+<h2>相場確認</h2>
+<div id="marketLinks" class="helper">カード候補を選ぶと検索リンクが表示されます。</div>
+<button id="autoPrice" class="primary">海外市場価格を自動取得</button>
+<div id="autoPriceStatus" class="status">カードを選択してください。</div>
+<p class="helper">Cardmarket（EUR）とTCGplayer（USD）の価格を円換算した参考相場です。日本国内のショップ買取額とは異なる場合があります。</p>
+<div class="grid" style="margin-top:10px">
+<label>販売相場・下限（円）<input id="marketSaleLow" type="number" min="0" placeholder="例：7000"></label>
+<label>販売相場・上限（円）<input id="marketSaleHigh" type="number" min="0" placeholder="例：9000"></label>
+<label>買取相場・下限（円）<input id="marketBuyLow" type="number" min="0" placeholder="例：5000"></label>
+<label>買取相場・上限（円）<input id="marketBuyHigh" type="number" min="0" placeholder="例：6500"></label>
+<label>売却目安（円）<input id="suggestedPrice" type="number" min="0"></label>
+<label>価格確認日<input id="priceCheckedDate" type="date"></label>
+</div>
+<button id="calcSuggested" class="secondary">売却目安を自動計算</button>
+<button id="saveMarket" class="secondary">このカードの相場を保存</button>
+<div id="marketStatus" class="status">相場データは未入力です。</div>
+</div>
+<label style="margin-top:10px">メモ<textarea id="memo"></textarea></label>
+<button id="save" class="primary">在庫へ登録</button>
+<p class="helper">内蔵辞書ですぐ検索できます。「設定」で同期すると候補を追加できます。カード名を2文字以上入力してください。</p>
+</div></section>
+
+<section id="inventory" class="view"><div class="card"><h2>在庫一覧</h2>
+<input id="searchInventory" placeholder="カード名・番号で検索">
+<div class="tableWrap"><table><thead><tr><th>カード名</th><th>番号</th><th>セット</th><th>レアリティ</th><th>状態</th><th>仕入れ</th><th>販売相場</th><th>売却目安</th><th>操作</th></tr></thead><tbody id="inventoryBody"></tbody></table></div>
+</div></section>
+
+
+<section id="sales" class="view"><div class="card"><h2>売却履歴・利益</h2>
+<div class="grid">
+<div class="status">売上合計：<strong id="salesTotal">¥0</strong></div>
+<div class="status">利益合計：<strong id="profitTotal">¥0</strong></div>
+</div>
+<div class="tableWrap"><table><thead><tr><th>カード名</th><th>番号</th><th>仕入れ</th><th>売却価格</th><th>利益</th><th>売却日</th><th>操作</th></tr></thead><tbody id="salesBody"></tbody></table></div>
+</div></section>
+
+<section id="settings" class="view">
+<div class="card"><h2>全カード辞書</h2><p class="helper">自動価格取得には、同期後の候補が持つTCGdexカードIDを使用します。</p>
+<p class="helper">内蔵辞書とTCGdexの日本語カード一覧を統合します。API側に未収録の日本語カードもあるため、完全網羅ではありません。足りないカードは辞書JSONの読み込みで追加できます。</p>
+<button id="sync" class="primary">全カード辞書を同期</button>
+<div id="syncStatus" class="status">未同期です。</div>
+<p><strong id="dictCount">辞書：0件</strong></p>
+<button id="exportDict" class="secondary">辞書をJSON出力</button>
+<label class="fileBtn">辞書を読み込み<input id="importDict" type="file" accept=".json,application/json"></label>
+</div>
+<div class="card"><h2>バックアップ</h2>
+<button id="exportAll" class="secondary">全データをバックアップ</button>
+<label class="fileBtn">バックアップを復元<input id="importAll" type="file" accept=".json,application/json"></label>
+</div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const API='https://api.tcgdex.net/v2/ja/cards';
+const SEED_CATALOG=[{"name":"イーブイex","number":"223/187","setCode":"sv8a","rarity":"SAR"},{"name":"エリカの招待","number":"196/165","setCode":"sv2a","rarity":"SR"},{"name":"エリカの招待","number":"206/165","setCode":"sv2a","rarity":"SAR"},{"name":"エーフィex","number":"211/187","setCode":"sv8a","rarity":"SAR"},{"name":"カメックスex","number":"009/165","setCode":"sv2a","rarity":"RR"},{"name":"カメックスex","number":"202/165","setCode":"sv2a","rarity":"SAR"},{"name":"グレイシアex","number":"206/187","setCode":"sv8a","rarity":"SAR"},{"name":"コライドンex","number":"360/190","setCode":"sv4a","rarity":"UR"},{"name":"サワロ","number":"095/071","setCode":"sv2D","rarity":"SAR"},{"name":"サンダースex","number":"209/187","setCode":"sv8a","rarity":"SAR"},{"name":"サーナイトex","number":"348/190","setCode":"sv4a","rarity":"SAR"},{"name":"シャワーズex","number":"205/187","setCode":"sv8a","rarity":"SAR"},{"name":"デカヌチャンex","number":"093/071","setCode":"sv2D","rarity":"SAR"},{"name":"ナンジャモ","number":"069/071","setCode":"sv2D","rarity":"U"},{"name":"ナンジャモ","number":"091/071","setCode":"sv2D","rarity":"SR"},{"name":"ナンジャモ","number":"096/071","setCode":"sv2D","rarity":"SAR"},{"name":"ナンジャモ","number":"350/190","setCode":"sv4a","rarity":"SAR"},{"name":"ニンフィアex","number":"068/187","setCode":"sv8a","rarity":"RR"},{"name":"ニンフィアex","number":"212/187","setCode":"sv8a","rarity":"SAR"},{"name":"ネモ","number":"351/190","setCode":"sv4a","rarity":"SAR"},{"name":"ネルケ","number":"352/190","setCode":"sv4a","rarity":"SAR"},{"name":"ピカチュウ","number":"001/SV-P","setCode":"SV-P","rarity":"PROMO"},{"name":"ピカチュウ","number":"205/172","setCode":"s12a","rarity":"AR"},{"name":"ピカチュウ","number":"173/165","setCode":"sv2a","rarity":"AR"},{"name":"フシギバナex","number":"003/165","setCode":"sv2a","rarity":"RR"},{"name":"フシギバナex","number":"198/165","setCode":"sv2a","rarity":"SAR"},{"name":"ブラッキーex","number":"093/187","setCode":"sv8a","rarity":"RR"},{"name":"ブラッキーex","number":"217/187","setCode":"sv8a","rarity":"SAR"},{"name":"ブースターex","number":"202/187","setCode":"sv8a","rarity":"SAR"},{"name":"ペパー","number":"353/190","setCode":"sv4a","rarity":"SAR"},{"name":"ミュウex","number":"151/165","setCode":"sv2a","rarity":"RR"},{"name":"ミュウex","number":"195/165","setCode":"sv2a","rarity":"SR"},{"name":"ミュウex","number":"205/165","setCode":"sv2a","rarity":"SAR"},{"name":"ミュウex","number":"208/165","setCode":"sv2a","rarity":"UR"},{"name":"ミュウex","number":"076/190","setCode":"sv4a","rarity":"RR"},{"name":"ミュウex","number":"347/190","setCode":"sv4a","rarity":"SAR"},{"name":"ミライドンex","number":"358/190","setCode":"sv4a","rarity":"UR"},{"name":"リザードンex","number":"006/165","setCode":"sv2a","rarity":"RR"},{"name":"リザードンex","number":"185/165","setCode":"sv2a","rarity":"SR"},{"name":"リザードンex","number":"201/165","setCode":"sv2a","rarity":"SAR"},{"name":"リザードンex","number":"115/190","setCode":"sv4a","rarity":"RR"},{"name":"リザードンex","number":"349/190","setCode":"sv4a","rarity":"SAR"},{"name":"リーフィアex","number":"003/187","setCode":"sv8a","rarity":"RR"},{"name":"リーフィアex","number":"200/187","setCode":"sv8a","rarity":"SAR"},{"name":"レックウザVMAX","number":"082/067","setCode":"s7R","rarity":"HR"},{"name":"レックウザVMAX","number":"083/067","setCode":"s7R","rarity":"HR"},{"name":"レックウザVMAX","number":"284/184","setCode":"s8b","rarity":"UR"}];
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){localStorage.setItem(k,JSON.stringify(v))}};
+const norm=v=>String(v||'').trim().toLowerCase().replace(/\s+/g,'');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+$('purchaseDate').value=today();$('priceCheckedDate').value=today();
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+ document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active');$(b.dataset.view).classList.add('active');
+ if(b.dataset.view==='inventory')renderInventory();
+ if(b.dataset.view==='sales')renderSales();
+ if(b.dataset.view==='settings')updateCount();
+});
+
+function catalog(){const x=store.get('pt-catalog',null);if(Array.isArray(x)&&x.length)return x;store.set('pt-catalog',SEED_CATALOG);return SEED_CATALOG}
+function saveCatalog(rows){store.set('pt-catalog',rows);updateCount()}
+function marketPrices(){return store.get('pt-market-prices',{})}
+function saveMarketPrices(x){store.set('pt-market-prices',x)}
+function priceKey(name,number,setCode){return [norm(name),String(number||'').trim(),String(setCode||'').trim().toLowerCase()].join('|')}
+function inventory(){return store.get('pt-inventory',[])}
+function saveInventory(rows){store.set('pt-inventory',rows)}
+
+function updateCount(){$('dictCount').textContent='辞書：'+catalog().length.toLocaleString('ja-JP')+'件'}
+
+$('cardName').oninput=()=>{
+ const q=norm($('cardName').value), box=$('candidateList');
+ if(q.length<2){box.style.display='none';box.innerHTML='';return}
+ const m=catalog().filter(x=>norm(x.name).includes(q)).slice(0,80);
+ box.innerHTML=m.length?m.map((x,i)=>`<button class="candidate" data-i="${i}"><strong>${esc(x.name)}</strong><br>${esc(x.setCode||'—')}｜${esc(x.number||'—')}｜${esc(x.rarity||'—')}</button>`).join(''):'<div class="helper" style="padding:12px">一致する候補がありません。</div>';
+ box.style.display='block';
+ box.querySelectorAll('.candidate').forEach((b,i)=>b.onclick=()=>{
+   const x=m[i];$('cardName').value=x.name;$('cardNumber').value=x.number||'';$('setCode').value=x.setCode||'';$('rarity').value=x.rarity||'';window.selectedSourceId=x.sourceId||'';box.style.display='none';updateMarketLinks();loadMarketForCurrent();fetchAutomaticPrice();
+ });
+};
+['cardName','cardNumber','setCode'].forEach(id=>$(id).addEventListener('input',()=>{window.selectedSourceId='';updateMarketLinks();loadMarketForCurrent()}));
+
+function updateMarketLinks(){
+ const name=$('cardName').value.trim(), number=$('cardNumber').value.trim();
+ if(!name){$('marketLinks').innerHTML='カード名を入力すると検索リンクが表示されます。';return}
+ const q=encodeURIComponent((name+' '+number).trim());
+ const links=[
+  ['メルカリで確認','https://jp.mercari.com/search?keyword='+q],
+  ['Yahoo!フリマで確認','https://paypayfleamarket.yahoo.co.jp/search/'+q],
+  ['カードラッシュを検索','https://www.google.com/search?q='+encodeURIComponent('site:cardrush-pokemon.jp '+name+' '+number)],
+  ['遊々亭を検索','https://www.google.com/search?q='+encodeURIComponent('site:yuyu-tei.jp ポケモンカード '+name+' '+number)],
+  ['駿河屋を検索','https://www.google.com/search?q='+encodeURIComponent('site:suruga-ya.jp '+name+' '+number)]
+ ];
+ $('marketLinks').innerHTML=links.map(([t,u])=>`<a href="${u}" target="_blank" rel="noopener" style="display:inline-block;margin:4px 8px 4px 0">${t}</a>`).join('');
+}
+
+window.selectedSourceId='';
+async function fxToJpy(currency){
+ if(currency==='JPY')return 1;
+ const res=await fetch(`https://api.frankfurter.app/latest?from=${encodeURIComponent(currency)}&to=JPY`,{cache:'no-store'});
+ if(!res.ok)throw new Error('為替レートを取得できません');
+ const d=await res.json();
+ const r=Number(d?.rates?.JPY);
+ if(!r)throw new Error('為替レートがありません');
+ return r;
+}
+function numericValues(obj){
+ if(!obj||typeof obj!=='object')return [];
+ return Object.values(obj).filter(v=>typeof v==='number'&&Number.isFinite(v)&&v>0);
+}
+async function resolveSourceId(){
+ if(window.selectedSourceId)return window.selectedSourceId;
+ const name=norm($('cardName').value), number=String($('cardNumber').value||'').trim(), set=String($('setCode').value||'').trim().toLowerCase();
+ const hit=catalog().find(x=>norm(x.name)===name&&String(x.number||'').trim()===number&&(!set||String(x.setCode||'').trim().toLowerCase()===set)&&x.sourceId);
+ if(hit)return hit.sourceId;
+ return '';
+}
+async function fetchAutomaticPrice(){
+ const status=$('autoPriceStatus');
+ const sourceId=await resolveSourceId();
+ if(!sourceId){
+  status.className='status err';
+  status.textContent='この候補には価格取得用IDがありません。「設定」で全カード辞書を同期してから、候補を選び直してください。';
+  return;
+ }
+ status.className='status';status.textContent='海外市場価格と為替を取得しています…';
+ $('autoPrice').disabled=true;
+ try{
+  const res=await fetch(`https://api.tcgdex.net/v2/ja/cards/${encodeURIComponent(sourceId)}`,{cache:'no-store'});
+  if(!res.ok)throw new Error('カード詳細を取得できません（HTTP '+res.status+'）');
+  const card=await res.json();
+  const pricing=card.pricing||{};
+  let saleLows=[], saleMids=[], sourceLabels=[], dates=[];
+  if(pricing.cardmarket){
+   const cm=pricing.cardmarket, rate=await fxToJpy(cm.unit||'EUR');
+   const lowCandidates=[cm.low,cm['low-holo']].filter(v=>Number(v)>0).map(v=>Number(v)*rate);
+   const midCandidates=[cm.trend,cm.avg,cm.avg7,cm.avg30,cm['trend-holo'],cm['avg-holo'],cm['avg7-holo'],cm['avg30-holo']].filter(v=>Number(v)>0).map(v=>Number(v)*rate);
+   saleLows.push(...lowCandidates);saleMids.push(...midCandidates);sourceLabels.push('Cardmarket');
+   if(cm.updated)dates.push(cm.updated);
+  }
+  if(pricing.tcgplayer){
+   const tp=pricing.tcgplayer, rate=await fxToJpy(tp.unit||'USD');
+   for(const [variant,v] of Object.entries(tp)){
+    if(!v||typeof v!=='object')continue;
+    if(Number(v.lowPrice)>0)saleLows.push(Number(v.lowPrice)*rate);
+    if(Number(v.marketPrice)>0)saleMids.push(Number(v.marketPrice)*rate);
+    else if(Number(v.midPrice)>0)saleMids.push(Number(v.midPrice)*rate);
+   }
+   sourceLabels.push('TCGplayer');
+   if(tp.updated)dates.push(tp.updated);
+  }
+  const all=[...saleLows,...saleMids].filter(v=>Number.isFinite(v)&&v>0);
+  if(!all.length)throw new Error('このカードには市場価格が登録されていません');
+  const low=Math.max(0,Math.round(Math.min(...(saleLows.length?saleLows:all))/100)*100);
+  const high=Math.max(low,Math.round(Math.max(...(saleMids.length?saleMids:all))/100)*100);
+  const suggested=Math.round(((low+high)/2)/100)*100;
+  // A conservative buy estimate only; explicitly labelled in status.
+  const buyLow=Math.round((low*0.55)/100)*100;
+  const buyHigh=Math.round((suggested*0.70)/100)*100;
+  $('marketSaleLow').value=low;$('marketSaleHigh').value=high;
+  $('marketBuyLow').value=buyLow;$('marketBuyHigh').value=buyHigh;
+  $('suggestedPrice').value=suggested;
+  $('priceCheckedDate').value=today();
+  const d=currentMarketData();
+  showMarketStatus(d);
+  status.className='status ok';
+  status.textContent=`${sourceLabels.join('・')}の海外参考相場を円換算しました。販売目安 ¥${low.toLocaleString()}～¥${high.toLocaleString()}。買取欄は販売相場の55～70%で仮計算しているため、国内店の実額ではありません。`;
+ }catch(e){
+  status.className='status err';status.textContent='自動取得できませんでした：'+e.message;
+ }finally{$('autoPrice').disabled=false}
+}
+$('autoPrice').onclick=fetchAutomaticPrice;
+
+function currentMarketData(){
+ return {
+  saleLow:Number($('marketSaleLow').value||0),saleHigh:Number($('marketSaleHigh').value||0),
+  buyLow:Number($('marketBuyLow').value||0),buyHigh:Number($('marketBuyHigh').value||0),
+  suggested:Number($('suggestedPrice').value||0),checkedDate:$('priceCheckedDate').value||today()
+ };
+}
+function showMarketStatus(d){
+ if(!d||(!d.saleLow&&!d.saleHigh&&!d.buyLow&&!d.buyHigh&&!d.suggested)){
+   $('marketStatus').textContent='相場データは未入力です。';$('marketStatus').className='status';return
+ }
+ $('marketStatus').textContent=`販売相場：¥${Number(d.saleLow||0).toLocaleString()}～¥${Number(d.saleHigh||0).toLocaleString()} ／ 買取相場：¥${Number(d.buyLow||0).toLocaleString()}～¥${Number(d.buyHigh||0).toLocaleString()} ／ 売却目安：¥${Number(d.suggested||0).toLocaleString()} ／ 確認日：${d.checkedDate||'—'}`;
+ $('marketStatus').className='status ok';
+}
+function loadMarketForCurrent(){
+ const k=priceKey($('cardName').value,$('cardNumber').value,$('setCode').value);
+ const d=marketPrices()[k];
+ ['marketSaleLow','marketSaleHigh','marketBuyLow','marketBuyHigh','suggestedPrice'].forEach(id=>$(id).value='');
+ $('priceCheckedDate').value=today();
+ if(d){
+  $('marketSaleLow').value=d.saleLow||'';$('marketSaleHigh').value=d.saleHigh||'';
+  $('marketBuyLow').value=d.buyLow||'';$('marketBuyHigh').value=d.buyHigh||'';
+  $('suggestedPrice').value=d.suggested||'';$('priceCheckedDate').value=d.checkedDate||today();
+ }
+ showMarketStatus(d);
+}
+$('calcSuggested').onclick=()=>{
+ const a=Number($('marketSaleLow').value||0),b=Number($('marketSaleHigh').value||0);
+ let suggested=0;
+ if(a&&b)suggested=Math.round((a+b)/2/100)*100;
+ else suggested=a||b||0;
+ $('suggestedPrice').value=suggested||'';
+ showMarketStatus(currentMarketData());
+};
+$('saveMarket').onclick=()=>{
+ if(!$('cardName').value.trim()){alert('先にカード名を入力してください。');return}
+ const k=priceKey($('cardName').value,$('cardNumber').value,$('setCode').value), all=marketPrices(), d=currentMarketData();
+ all[k]=d;saveMarketPrices(all);showMarketStatus(d);alert('相場データを保存しました。');
+};
+
+$('save').onclick=()=>{
+ const item={id:Date.now(),cardName:$('cardName').value.trim(),cardNumber:$('cardNumber').value.trim(),setCode:$('setCode').value.trim(),rarity:$('rarity').value.trim(),condition:$('condition').value,purchasePrice:Number($('purchasePrice').value||0),purchaseDate:$('purchaseDate').value,memo:$('memo').value.trim(),market:currentMarketData(),sourceId:window.selectedSourceId||'',status:'stock',createdAt:new Date().toISOString()};
+ if(!item.cardName){alert('カード名を入力してください。');return}
+ const rows=inventory();rows.push(item);saveInventory(rows);alert('在庫へ登録しました。');
+ ['cardName','cardNumber','setCode','rarity','purchasePrice','memo','marketSaleLow','marketSaleHigh','marketBuyLow','marketBuyHigh','suggestedPrice'].forEach(id=>$(id).value='');$('purchaseDate').value=today();$('priceCheckedDate').value=today();window.selectedSourceId='';updateMarketLinks();showMarketStatus(null);$('autoPriceStatus').className='status';$('autoPriceStatus').textContent='カードを選択してください。';$('priceCheckedDate').value=today();
+};
+
+function renderInventory(){
+ const q=norm($('searchInventory').value);
+ const rows=inventory().filter(x=>!q||norm(x.cardName||x.name).includes(q)||norm(x.cardNumber||x.number).includes(q));
+ $('inventoryBody').innerHTML=rows.length?rows.map(x=>`<tr><td>${esc(x.cardName||x.name)}</td><td>${esc(x.cardNumber||x.number)}</td><td>${esc(x.setCode)}</td><td>${esc(x.rarity)}</td><td>${esc(x.condition)}</td><td>¥${Number(x.purchasePrice||0).toLocaleString()}</td><td>${x.market&&x.market.saleLow?'¥'+Number(x.market.saleLow).toLocaleString()+'～¥'+Number(x.market.saleHigh||x.market.saleLow).toLocaleString():'—'}</td><td>${x.market&&x.market.suggested?'¥'+Number(x.market.suggested).toLocaleString():'—'}</td><td><button class="primary" onclick="sellItem(${x.id||0})">売却</button><button class="danger" onclick="removeItem(${x.id||0})">削除</button></td></tr>`).join(''):'<tr><td colspan="9">登録された在庫はありません。</td></tr>';
+}
+$('searchInventory').oninput=renderInventory;
+window.removeItem=id=>{if(!confirm('削除しますか？'))return;saveInventory(inventory().filter((x,i)=>(x.id||i)!==id));renderInventory()};
+
+
+function sales(){return store.get('pt-sales',[])}
+function saveSales(rows){store.set('pt-sales',rows)}
+window.sellItem=id=>{
+ const rows=inventory(), idx=rows.findIndex((x,i)=>(x.id||i)===id);
+ if(idx<0)return;
+ const item=rows[idx];
+ const priceText=prompt('売却価格を入力してください（円）','');
+ if(priceText===null)return;
+ const salePrice=Number(String(priceText).replace(/,/g,''));
+ if(!Number.isFinite(salePrice)||salePrice<0){alert('正しい金額を入力してください。');return}
+ const saleDate=prompt('売却日を入力してください（YYYY-MM-DD）',today());
+ if(saleDate===null)return;
+ const sold={...item,salePrice,saleDate,profit:salePrice-Number(item.purchasePrice||0),soldAt:new Date().toISOString()};
+ const sr=sales();sr.push(sold);saveSales(sr);
+ rows.splice(idx,1);saveInventory(rows);renderInventory();
+ alert('売却履歴へ移動しました。利益：¥'+sold.profit.toLocaleString());
+};
+function renderSales(){
+ const rows=sales().slice().sort((a,b)=>String(b.saleDate||'').localeCompare(String(a.saleDate||'')));
+ let total=0,profit=0;
+ rows.forEach(x=>{total+=Number(x.salePrice||0);profit+=Number(x.profit??(Number(x.salePrice||0)-Number(x.purchasePrice||0)))});
+ $('salesTotal').textContent='¥'+total.toLocaleString();
+ $('profitTotal').textContent='¥'+profit.toLocaleString();
+ $('salesBody').innerHTML=rows.length?rows.map((x,i)=>{
+   const p=Number(x.profit??(Number(x.salePrice||0)-Number(x.purchasePrice||0)));
+   return `<tr><td>${esc(x.cardName||x.name)}</td><td>${esc(x.cardNumber||x.number)}</td><td>¥${Number(x.purchasePrice||0).toLocaleString()}</td><td>¥${Number(x.salePrice||0).toLocaleString()}</td><td>¥${p.toLocaleString()}</td><td>${esc(x.saleDate||'')}</td><td><button class="danger" onclick="removeSale(${i})">削除</button></td></tr>`
+ }).join(''):'<tr><td colspan="7">売却履歴はありません。</td></tr>';
+}
+window.removeSale=i=>{if(!confirm('この売却履歴を削除しますか？'))return;const r=sales();r.splice(i,1);saveSales(r);renderSales()};
+
+$('sync').onclick=async()=>{
+ $('sync').disabled=true;$('syncStatus').className='status';$('syncStatus').textContent='カード一覧を取得しています…';
+ try{
+  const res=await fetch(API,{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);
+  const data=await res.json();if(!Array.isArray(data))throw new Error('データ形式エラー');
+  const fetched=data.map(x=>{const id=String(x.id||''),p=id.lastIndexOf('-');return{name:String(x.name||'').trim(),number:String(x.localId||'').trim(),setCode:p>0?id.slice(0,p):'',rarity:'',sourceId:id}}).filter(x=>x.name&&x.number);
+  const merged=[...catalog(),...fetched], seen=new Set(), unique=[];
+  for(const x of merged){const k=(norm(x.name)+'|'+x.number+'|'+String(x.setCode).toLowerCase());if(!seen.has(k)){seen.add(k);unique.push(x)}}
+  unique.sort((a,b)=>a.name.localeCompare(b.name,'ja')||String(a.setCode).localeCompare(String(b.setCode))||String(a.number).localeCompare(String(b.number),undefined,{numeric:true}));
+  saveCatalog(unique);store.set('pt-catalog-sync',{at:new Date().toISOString(),count:unique.length});
+  $('syncStatus').className='status ok';$('syncStatus').textContent=unique.length.toLocaleString('ja-JP')+'件を保存しました。';
+ }catch(e){$('syncStatus').className='status err';$('syncStatus').textContent='同期できませんでした：'+e.message}
+ finally{$('sync').disabled=false}
+};
+
+function download(data,name){const b=new Blob([data],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+$('exportDict').onclick=()=>download(JSON.stringify(catalog(),null,2),'poketrade_card_catalog.json');
+$('importDict').onchange=e=>readJson(e.target.files[0],d=>{if(!Array.isArray(d))throw Error();saveCatalog(d.filter(x=>x&&x.name&&x.number));alert('辞書を読み込みました。')});
+$('exportAll').onclick=()=>download(JSON.stringify({catalog:catalog(),inventory:inventory(),sales:sales(),marketPrices:marketPrices(),exportedAt:new Date().toISOString()},null,2),'poketrade_ver4_backup.json');
+$('importAll').onchange=e=>readJson(e.target.files[0],d=>{if(d.catalog)saveCatalog(d.catalog);if(d.inventory)saveInventory(d.inventory);if(d.sales)saveSales(d.sales);if(d.marketPrices)saveMarketPrices(d.marketPrices);alert('復元しました。')});
+function readJson(file,cb){if(!file)return;const r=new FileReader();r.onload=()=>{try{cb(JSON.parse(r.result))}catch{alert('JSONファイルを読み込めませんでした。')}};r.readAsText(file)}
+catalog();updateCount();renderInventory();renderSales();updateMarketLinks();loadMarketForCurrent();
+</script>
+</body></html>
